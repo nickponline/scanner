@@ -1,0 +1,190 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "scene.v1",
+ "type": "object",
+ "required": [
+  "schema",
+  "scan_id",
+  "version",
+  "units",
+  "up",
+  "bounds",
+  "levels",
+  "layers"
+ ],
+ "properties": {
+  "schema": {
+   "const": "scene.v1"
+  },
+  "scan_id": {
+   "type": "string"
+  },
+  "version": {
+   "type": "integer"
+  },
+  "name": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "units": {
+   "const": "m"
+  },
+  "up": {
+   "const": "z"
+  },
+  "north_deg": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "bounds": {
+   "type": "object",
+   "required": [
+    "min",
+    "max"
+   ],
+   "properties": {
+    "min": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 3,
+     "maxItems": 3
+    },
+    "max": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 3,
+     "maxItems": 3
+    }
+   }
+  },
+  "levels": {
+   "type": "object",
+   "properties": {
+    "floor": {
+     "type": "number"
+    },
+    "ceiling": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "ceiling_max": {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   }
+  },
+  "default_view": {
+   "type": "object",
+   "properties": {
+    "position": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 3,
+     "maxItems": 3
+    },
+    "target": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 3,
+     "maxItems": 3
+    }
+   }
+  },
+  "layers": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "label"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "kind": {
+      "enum": [
+       "splat",
+       "mesh",
+       "model",
+       "points",
+       "cameras",
+       "trajectory",
+       "plan",
+       "ground"
+      ]
+     },
+     "label": {
+      "type": "string"
+     },
+     "url": {
+      "type": "string"
+     },
+     "fallback_url": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "visible": {
+      "type": "boolean"
+     },
+     "summary": {
+      "type": "string"
+     },
+     "modes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "mode": {
+      "type": "string"
+     },
+     "styles": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "url"
+       ]
+      }
+     },
+     "style": {
+      "type": "string"
+     },
+     "stats": {
+      "type": "object"
+     }
+    }
+   }
+  },
+  "building_model_url": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "base_url": {
+   "type": "string"
+  }
+ }
+}

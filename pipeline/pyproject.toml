@@ -1,0 +1,20 @@
+[project]
+name = "scanner-pipeline"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "google-cloud-storage>=2.18",
+  "google-cloud-firestore>=2.19",
+]
+
+[project.optional-dependencies]
+cpu = ["av", "opencv-python-headless", "pillow", "scipy", "trimesh", "shapely", "google-genai", "pycolmap==4.2.1", "open3d", "requests", "scikit-learn", "mapbox_earcut", "manifold3d"]
+test = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["scanner_pipeline*"]

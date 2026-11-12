@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/.venv
+mobile/
+viewer/node_modules
+viewer/test-screenshots
+viewer/public/fixtures
+**/__pycache__
+infra/.terraform

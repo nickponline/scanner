@@ -1,0 +1,18 @@
+# gcloud builds submit --config pipeline/cloudbuild.yaml --substitutions=_IMAGE=cpu,_TAG=... .
+steps:
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args: ["-c", "docker pull ${_REPO}/${_IMAGE}:latest || true"]
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "pipeline/docker/${_IMAGE}.Dockerfile", "--cache-from", "${_REPO}/${_IMAGE}:latest",
+           "-t", "${_REPO}/${_IMAGE}:${_TAG}", "-t", "${_REPO}/${_IMAGE}:latest", "."]
+images: ["${_REPO}/${_IMAGE}:${_TAG}", "${_REPO}/${_IMAGE}:latest"]
+substitutions:
+  _REPO: us-central1-docker.pkg.dev/scanner-514023/scanner
+  _IMAGE: cpu
+  _TAG: dev
+options:
+  machineType: E2_HIGHCPU_8
+  diskSizeGb: 300
+  logging: CLOUD_LOGGING_ONLY
+timeout: 7200s

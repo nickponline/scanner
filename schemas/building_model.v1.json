@@ -1,0 +1,242 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "building_model.v1",
+ "type": "object",
+ "required": [
+  "schema",
+  "storeys"
+ ],
+ "properties": {
+  "schema": {
+   "const": "building_model.v1"
+  },
+  "units": {
+   "const": "m"
+  },
+  "up": {
+   "const": "z"
+  },
+  "north_deg": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "storeys": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "floor_z",
+     "ceiling_z",
+     "rooms",
+     "walls",
+     "openings",
+     "furniture"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "floor_z": {
+      "type": "number"
+     },
+     "ceiling_z": {
+      "type": "number"
+     },
+     "rooms": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "name",
+        "polygon"
+       ],
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "name": {
+         "type": "string"
+        },
+        "type": {
+         "type": "string"
+        },
+        "polygon": {
+         "type": "array",
+         "items": {
+          "type": "array",
+          "items": {
+           "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+         },
+         "minItems": 3
+        },
+        "area_m2": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "ceiling_z": {
+         "type": "number"
+        }
+       }
+      }
+     },
+     "walls": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "start",
+        "end",
+        "thickness",
+        "height"
+       ],
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "start": {
+         "type": "array",
+         "items": {
+          "type": "number"
+         },
+         "minItems": 2,
+         "maxItems": 2
+        },
+        "end": {
+         "type": "array",
+         "items": {
+          "type": "number"
+         },
+         "minItems": 2,
+         "maxItems": 2
+        },
+        "thickness": {
+         "type": "number"
+        },
+        "height": {
+         "type": "number"
+        },
+        "base_z": {
+         "type": "number"
+        },
+        "exterior": {
+         "type": "boolean"
+        }
+       }
+      }
+     },
+     "openings": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "type",
+        "wall_id",
+        "center",
+        "width",
+        "height"
+       ],
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "type": {
+         "enum": [
+          "door",
+          "window",
+          "opening"
+         ]
+        },
+        "wall_id": {
+         "type": "string"
+        },
+        "center": {
+         "type": "array",
+         "items": {
+          "type": "number"
+         },
+         "minItems": 2,
+         "maxItems": 2
+        },
+        "width": {
+         "type": "number"
+        },
+        "height": {
+         "type": "number"
+        },
+        "sill_z": {
+         "type": "number"
+        },
+        "swing": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "furniture": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "label",
+        "center",
+        "size"
+       ],
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        },
+        "center": {
+         "type": "array",
+         "items": {
+          "type": "number"
+         },
+         "minItems": 3,
+         "maxItems": 3
+        },
+        "size": {
+         "type": "array",
+         "items": {
+          "type": "number"
+         },
+         "minItems": 3,
+         "maxItems": 3
+        },
+        "yaw_deg": {
+         "type": "number"
+        },
+        "room_id": {
+         "type": [
+          "string",
+          "null"
+         ]
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "provenance": {
+   "type": "object"
+  }
+ }
+}

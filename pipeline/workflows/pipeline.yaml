@@ -1,0 +1,229 @@
+# Scanner processing pipeline (REQUIREMENTS §5). One Cloud Batch job per stage.
+# args: {scan_id, version, from_stage?, config?, image_tag?, only?: [stage,...]}
+main:
+  params: [args]
+  steps:
+    - init:
+        assign:
+          - project: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+          - region: "us-central1"
+          # L4s stock out in us-central1; GPU stages run where capacity exists (quota: 1 L4 in each of these).
+          - gpu_region: ${default(map.get(args, "gpu_region"), "us-west1")}
+          - scan: ${args.scan_id}
+          - version: ${args.version}
+          - from_stage: ${default(map.get(args, "from_stage"), "ingest")}
+          - only: ${default(map.get(args, "only"), [])}
+          - config: {}
+          - tag: ${default(map.get(args, "image_tag"), "latest")}
+          - repo: ${"us-central1-docker.pkg.dev/" + project + "/scanner/"}
+          - sa: ${"scanner-pipeline@" + project + ".iam.gserviceaccount.com"}
+          # fatal: failure stops the pipeline (nothing useful to publish). needs: skip if that stage failed.
+          - stages:
+              - {name: ingest,  image: cpu,    machine: n2-standard-4,  cpu: 3500,  mem: 14000,  gpu: false, fatal: true,  needs: "", timeout: 3600}
+              - {name: frames,  image: cpu,    machine: n2-highcpu-16,  cpu: 15000, mem: 14000,  gpu: false, fatal: true,  needs: "", timeout: 7200}
+              - {name: sfm,     image: colmap, machine: g2-standard-16, cpu: 15000, mem: 60000,  gpu: true,  fatal: true,  needs: "", timeout: 21600}
+              - {name: depth,   image: cpu,    machine: n2-highmem-8,   cpu: 7500,  mem: 60000,  gpu: false, fatal: true,  needs: "", timeout: 7200}
+              - {name: densify, image: da3,    machine: g2-standard-16, cpu: 15000, mem: 60000,  gpu: true,  fatal: false, needs: "", timeout: 7200}
+              # splat + lod disabled for now (restore these two lines to bring the Gaussian splat back)
+              # - {name: splat,   image: gpu,    machine: g2-standard-16, cpu: 15000, mem: 60000,  gpu: true,  fatal: false, needs: "", timeout: 21600}
+              # - {name: lod,     image: cpu,    machine: n2-highmem-16,  cpu: 15000, mem: 120000, gpu: false, fatal: false, needs: "splat", timeout: 7200}
+              - {name: plan,    image: cpu,    machine: n2-standard-8,  cpu: 7500,  mem: 30000,  gpu: false, fatal: false, needs: "", timeout: 5400}
+              - {name: publish, image: cpu,    machine: n2-standard-8,  cpu: 7500,  mem: 30000,  gpu: false, fatal: true,  needs: "", timeout: 3600}
+          - started: false
+          - failed: []
+          - fatal_error: ""
+    - read_config:
+        switch:
+          - condition: ${"config" in args}
+            assign:
+              - config: ${args.config}
+    - run_all:
+        for:
+          value: st
+          in: ${stages}
+          steps:
+            - gate_start:
+                switch:
+                  - condition: ${st.name == from_stage}
+                    assign:
+                      - started: true
+            - gate:
+                switch:
+                  - condition: ${not started}
+                    next: continue
+                  - condition: ${len(only) > 0 and not (st.name in only)}
+                    next: continue
+                  - condition: ${fatal_error != ""}
+                    next: continue
+                  - condition: ${st.needs != "" and (st.needs in failed)}
+                    next: continue
+            - run:
+                try:
+                  call: run_stage
+                  args:
+                    project: ${project}
+                    region: ${if(st.gpu, gpu_region, region)}
+                    scan: ${scan}
+                    version: ${version}
+                    st: ${st}
+                    image: ${repo + st.image + ":" + tag}
+                    config: ${config}
+                    sa: ${sa}
+                except:
+                  as: e
+                  steps:
+                    - note_failure:
+                        assign:
+                          - failed: ${list.concat(failed, st.name)}
+                    - build_fields:
+                        assign:
+                          - err_text: ${json.encode_to_string(e)}
+                          - err_text: ${text.substring(err_text, 0, math.min(len(err_text), 1500))}
+                          - stage_fields:
+                              status:
+                                stringValue: "failed"
+                              version:
+                                integerValue: ${string(version)}
+                              batch_error:
+                                stringValue: ${err_text}
+                          - inner: {}
+                          - inner[st.name]:
+                              mapValue:
+                                fields: ${stage_fields}
+                    - mark_stage_failed:
+                        try:
+                          call: patch_scan
+                          args:
+                            project: ${project}
+                            scan: ${scan}
+                            fields:
+                              stages:
+                                mapValue:
+                                  fields: ${inner}
+                            mask: ${["stages." + st.name + ".status", "stages." + st.name + ".batch_error", "stages." + st.name + ".version"]}
+                        except:
+                          as: e2
+                          steps:
+                            - ignore: {assign: [x: 0]}
+                    - maybe_fatal:
+                        switch:
+                          - condition: ${st.fatal}
+                            assign:
+                              - fatal_error: ${st.name}
+    - finish:
+        switch:
+          - condition: ${fatal_error != ""}
+            steps:
+              - mark_failed:
+                  call: patch_scan
+                  args:
+                    project: ${project}
+                    scan: ${scan}
+                    fields:
+                      status:
+                        stringValue: "failed"
+                      failed_stage:
+                        stringValue: ${fatal_error}
+                    mask: ["status", "failed_stage"]
+              - fail:
+                  raise: ${"stage " + fatal_error + " failed"}
+    - done:
+        return:
+          scan: ${scan}
+          version: ${version}
+          failed: ${failed}
+
+run_stage:
+  params: [project, region, scan, version, st, image, config, sa]
+  steps:
+    - ids:
+        assign:
+          - sid: ${text.to_lower(text.replace_all(text.replace_all(scan, "_", "-"), ".", "-"))}
+          - job_id: ${text.substring("s-" + st.name + "-" + sid + "-v" + string(version) + "-" + string(int(sys.now())), 0, 63)}
+          - accels: []
+          - drivers: false
+          - opts: "--shm-size=16g"
+    - gpu:
+        switch:
+          - condition: ${st.gpu}
+            assign:
+              - accels:
+                  - type: "nvidia-l4"
+                    count: 1
+              - drivers: true
+    - create:
+        call: googleapis.batch.v1.projects.locations.jobs.create
+        args:
+          parent: ${"projects/" + project + "/locations/" + region}
+          jobId: ${job_id}
+          body:
+            taskGroups:
+              - taskCount: 1
+                taskSpec:
+                  runnables:
+                    - container:
+                        imageUri: ${image}
+                        options: ${opts}
+                        # explicit: Batch's GPU (COS) runner does not honour the image ENTRYPOINT
+                        entrypoint: "python"
+                        commands:
+                          - "-m"
+                          - "scanner_pipeline"
+                          - ${st.name}
+                          - "--scan"
+                          - ${scan}
+                          - "--version"
+                          - ${string(version)}
+                          - "--config"
+                          - ${json.encode_to_string(config)}
+                  computeResource:
+                    cpuMilli: ${st.cpu}
+                    memoryMib: ${st.mem}
+                  maxRetryCount: 1
+                  maxRunDuration: ${string(st.timeout) + "s"}
+                  environment:
+                    variables:
+                      SCANNER_IMAGE: ${image}
+                      GOOGLE_CLOUD_PROJECT: ${project}
+            allocationPolicy:
+              instances:
+                - installGpuDrivers: ${drivers}
+                  policy:
+                    machineType: ${st.machine}
+                    provisioningModel: STANDARD
+                    accelerators: ${accels}
+                    bootDisk:
+                      sizeGb: 250
+                      type: pd-standard
+              serviceAccount:
+                email: ${sa}
+              location:
+                allowedLocations:
+                  - ${"regions/" + region}
+            labels:
+              scanner_stage: ${st.name}
+              scanner_scan: ${sid}
+            logsPolicy:
+              destination: CLOUD_LOGGING
+          connector_params:
+            timeout: 43200
+            polling_policy: {initial_delay: 20, multiplier: 1.25, max_delay: 60}
+        result: job
+    - check:
+        switch:
+          - condition: ${job.status.state != "SUCCEEDED"}
+            raise: ${"batch job " + job_id + " ended " + job.status.state}
+    - ret:
+        return: ${job_id}
+
+patch_scan:
+  params: [project, scan, fields, mask]
+  steps:
+    - patch:
+        call: googleapis.firestore.v1.projects.databases.documents.patch
+        args:
+          name: ${"projects/" + project + "/databases/(default)/documents/scans/" + scan}
+          updateMask:
+            fieldPaths: ${mask}
+          body:
+            fields: ${fields}

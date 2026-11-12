@@ -1,0 +1,22 @@
+node_modules/
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+.terraform/
+*.tfstate*
+.env
+dist/
+build/
+/data/
+
+# generated test data / outputs
+viewer/public/fixtures/
+viewer/test-screenshots/
+viewer/test-results/
+playwright-report/
+.pytest_cache/
+*.egg-info/
+mobile/ios/
+mobile/android/
+mobile/.expo/

@@ -1,0 +1,149 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "capture_manifest.v1",
+ "type": "object",
+ "required": [
+  "schema",
+  "name",
+  "created_at",
+  "capture_source",
+  "device",
+  "segments",
+  "files"
+ ],
+ "properties": {
+  "schema": {
+   "const": "capture_manifest.v1"
+  },
+  "scan_id": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "name": {
+   "type": "string"
+  },
+  "created_at": {
+   "type": "string"
+  },
+  "capture_source": {
+   "enum": [
+    "iphone_arkit",
+    "arkitscenes",
+    "insta360"
+   ]
+  },
+  "device": {
+   "type": "object",
+   "properties": {
+    "model": {
+     "type": "string"
+    },
+    "os": {
+     "type": "string"
+    },
+    "app_version": {
+     "type": "string"
+    }
+   }
+  },
+  "video_format": {
+   "type": "object",
+   "properties": {
+    "w": {
+     "type": "integer"
+    },
+    "h": {
+     "type": "integer"
+    },
+    "fps": {
+     "type": "number"
+    },
+    "codec": {
+     "type": "string"
+    }
+   }
+  },
+  "segments": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "index",
+     "video",
+     "frames"
+    ],
+    "properties": {
+     "index": {
+      "type": "integer"
+     },
+     "video": {
+      "type": "string"
+     },
+     "frames": {
+      "type": "string"
+     },
+     "depth": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "imu": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "n_frames": {
+      "type": "integer"
+     },
+     "duration_s": {
+      "type": "number"
+     }
+    }
+   }
+  },
+  "stills": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "arkit_mesh": {
+   "type": [
+    "string",
+    "null"
+   ]
+  },
+  "files": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": [
+     "path",
+     "size"
+    ],
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer"
+     },
+     "crc32c": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "heading_deg_at_start": {
+   "type": [
+    "number",
+    "null"
+   ]
+  }
+ }
+}

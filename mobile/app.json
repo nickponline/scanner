@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Scanner",
+    "slug": "scanner",
+    "scheme": "scanner",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "platforms": [
+      "ios"
+    ],
+    "ios": {
+      "bundleIdentifier": "xyz.liminal.scanner",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Scanner records the camera, LiDAR depth and motion to reconstruct your home in 3D.",
+        "NSMotionUsageDescription": "Scanner records accelerometer, gyroscope and compass data alongside the video for reconstruction.",
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "18.0"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {}
+    }
+  }
+}
